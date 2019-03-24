@@ -17,7 +17,7 @@ from math import ceil
 
 model_ind = 1
 folder_name = 'model_1'
-if len(sys.argv) == 3:    
+if len(sys.argv) == 3:
   try:
     model_ind = int(sys.argv[1])
     folder_name = f'{sys.argv[2]}_{model_ind}'
@@ -28,19 +28,35 @@ if len(sys.argv) == 3:
 #folder_name = f'model_2nd_{model_ind}'
 print('Folder name', folder_name)
 config = {
-        'epochs': 15,
-        'trbatch_size': 128,
-        'valbatch_size': 64,
-        'tsbatch_size': 32,
+        'epochs': 138,
+        'trbatch_size': 64,
+        'valbatch_size': 32,
+        'tsbatch_size': 16,
         'input_shape': (150,150,3),
-        'num_classes': 102
+        'num_classes': 102,
+        'lrate': 5e-4
 }
 print(config)
 print()
 
 model = model_pool(model_ind, config)
 
-train_datagen = ImageDataGenerator(rescale=1./255)
+# too custom
+# TODO: make config file
+if 'augment' in folder_name:
+  print('data augmentation')
+  train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=40,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,)
+else:
+  print('NO data augmentation')
+  train_datagen = ImageDataGenerator(rescale=1./255)
+
 val_datagen = ImageDataGenerator(rescale=1./255)
 test_datagen = ImageDataGenerator(rescale=1./255)
 
@@ -51,7 +67,7 @@ test_dir = path.join('data_split', 'test')
 train_generator = train_datagen.flow_from_directory(
         # This is the target directory
         train_dir,
-        # All images will be resized to 150x150
+        # All images will be resized to config['input_shape']
         target_size=config['input_shape'][:-1],
         batch_size=config['trbatch_size'],
         # Since we use binary_crossentropy loss, we need binary labels
@@ -71,7 +87,7 @@ test_generator = test_datagen.flow_from_directory(
 
 #%%
 tensorboard = TensorBoard(log_dir=f'./{folder_name}', histogram_freq=0, write_graph=True, write_images=True)
-
+#%%
 start = time()
 history = model.fit_generator(
       train_generator,
